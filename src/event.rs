@@ -49,6 +49,7 @@ pub struct EventHandler {
 
 impl EventHandler {
     /// Constructs a new instance of [`EventHandler`] and spawns a new thread to handle events.
+    #[must_use]
     pub fn new() -> Self {
         let (sender, receiver) = mpsc::unbounded_channel();
         let actor = EventTask::new(sender.clone());
@@ -81,6 +82,12 @@ impl EventHandler {
     }
 }
 
+impl Default for EventHandler {
+    fn default() -> EventHandler {
+        Self::new()
+    }
+}
+
 /// A thread that handles reading crossterm events and emitting tick events on a regular schedule.
 struct EventTask {
     /// Event sender channel.
@@ -105,7 +112,7 @@ impl EventTask {
             let tick_delay = tick.tick();
             let crossterm_event = reader.next().fuse();
             tokio::select! {
-              _ = self.sender.closed() => {
+              () = self.sender.closed() => {
                 break;
               }
               _ = tick_delay => {

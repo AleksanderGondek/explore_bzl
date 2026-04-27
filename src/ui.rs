@@ -1,12 +1,11 @@
-use std::io::Lines;
 
 use ratatui::{
     buffer::Buffer,
-    layout::{Alignment, Constraint, Layout, Offset, Rect},
-    style::{Color, Stylize},
+    layout::{Constraint, Layout, Offset, Rect},
+    style::Stylize,
     symbols,
     widgets::{
-        Block, BorderType, Borders, List, ListState, Padding, Paragraph, StatefulWidget, Tabs,
+        Block, List, ListState, Padding, Paragraph, StatefulWidget, Tabs,
         Widget,
     },
 };
@@ -84,12 +83,12 @@ impl Widget for &App {
         // Right side
         let rtab_content_block = Block::bordered().padding(Padding::symmetric(2, 1));
         let target_overivew_lines: Vec<ratatui::text::Line<'static>> = vec![
-            r#"platform("#.into(),
+            r"platform(".into(),
             r#"  name = "x86_64_linux_remote","#.into(),
             r#"  visibility = ["//visibility:public"],"#.into(),
             r#"  constraint_values = ["@platforms//os:linux", "@platforms//cpu:x86_64"],"#.into(),
             r#"  exec_properties = {"OSFamily": "Linux", "container-image": "docker://harbor.apps.morrigna.rules-nix.build/explore-bzl/ash-bash-coreutils-i686-cc-x86_64-cc:myl0xwv1z442sc5ci982qny9lb0c0giv"},"#.into(),
-            r#")"#.into(),
+            r")".into(),
         ];
         let target_overview = Paragraph::new(target_overivew_lines).block(rtab_content_block);
         target_overview.render(bottom_layout[1], buf);

@@ -25,6 +25,7 @@ impl Default for App {
 
 impl App {
     /// Constructs a new instance of [`App`].
+    #[must_use] 
     pub fn new() -> Self {
         Self::default()
     }
@@ -42,7 +43,7 @@ impl App {
                     crossterm::event::Event::Key(key_event)
                         if key_event.kind == crossterm::event::KeyEventKind::Press =>
                     {
-                        self.handle_key_events(key_event)?
+                        self.handle_key_events(key_event)?;
                     }
                     _ => {}
                 },
@@ -62,7 +63,7 @@ impl App {
         match key_event.code {
             KeyCode::Esc | KeyCode::Char('q') => self.events.send(AppEvent::Quit),
             KeyCode::Char('c' | 'C') if key_event.modifiers == KeyModifiers::CONTROL => {
-                self.events.send(AppEvent::Quit)
+                self.events.send(AppEvent::Quit);
             }
             KeyCode::Right => self.events.send(AppEvent::Increment),
             KeyCode::Left => self.events.send(AppEvent::Decrement),
