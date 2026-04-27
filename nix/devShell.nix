@@ -25,11 +25,6 @@ in
 
     shellHook = ''
       export CARGO_HOME="''${PWD}/.cache/.cargo"
-      # Workaround for jmalloc issues with nixpkgs gcc14
-      #  '422 | #  warning _FORTIFY_SOURCE requires compiling with optimization (-O)'
-      # See: https://github.com/NixOS/nixpkgs/issues/370494
-      # export CFLAGS="-DJEMALLOC_STRERROR_R_RETURNS_CHAR_WITH_GNU_SOURCE"
-
       mkdir -p ''${CARGO_HOME}
     '';
   }
