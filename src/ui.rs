@@ -16,7 +16,7 @@ pub struct Ui {}
 
 impl StatefulWidget for Ui {
   type State = Model;
-  fn render(self, area: Rect, buf: &mut Buffer, _state: &mut Self::State) {
+  fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
     let layout = Layout::default()
       .direction(ratatui::layout::Direction::Vertical)
       .constraints(vec![Constraint::Percentage(10), Constraint::Percentage(90)])
@@ -35,13 +35,14 @@ impl StatefulWidget for Ui {
                 "/home/agondek/projects/aleksandergondek/rules_cc_hdrs_map/.bazelisk-bin/bazel"
                     .into(),
             ]),
-            ratatui::text::Line::from_iter(["Bazel version: ".bold(), "8.5.1".into()]),
-            ratatui::text::Line::from_iter(["Bazel server PID: ".bold(), "38388".into()]),
+            ratatui::text::Line::from_iter(["Bazel version: ".bold(), state.bazel_info.release.clone().unwrap_or("<ELO>".to_string()).into()]), //TODO: This is ugly, needs fixing
+            ratatui::text::Line::from_iter(["Bazel server PID: ".bold(), state.bazel_info.server_pid.clone().unwrap_or("<elo>".to_string()).into()]),
             ratatui::text::Line::from_iter([
                 "Workspace: ".bold(),
-                "/home/agondek/projects/aleksandergondek/rules_cc_hdrs_map".into(),
+                state.bazel_info.workspace.clone().unwrap_or("<elo>".to_string()).into(),
             ]),
         ];
+
     let top_paragraph = Paragraph::new(statuses)
       .block(Block::new().padding(Padding::symmetric(2, 1)));
     top_paragraph.render(layout[0], buf);

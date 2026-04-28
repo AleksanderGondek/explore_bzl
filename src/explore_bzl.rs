@@ -1,4 +1,10 @@
-use crate::{Result, dispatch::Dispatch, event::Event, model::Model, ui::Ui};
+use crate::{
+  Result,
+  dispatch::Dispatch,
+  event::{BazelCommand, Event},
+  model::Model,
+  ui::Ui,
+};
 
 use ratatui::DefaultTerminal;
 
@@ -15,17 +21,22 @@ pub async fn run(mut terminal: DefaultTerminal) -> Result<()> {
     // TODO: Wrap into separate function?
     let event = dispatch.next().await?;
     if let Event::Crossterm(e) = event {
-      handle_crossterm_events(&mut dispatch, e);
+      handle_crossterm_events(&mut dispatch, &e);
       continue;
     }
 
     // TODO: Wrap in to separate function(s)?
     // TODO: Return new state, instead of modifying current one?
     match event {
+      Event::BazelResponse(crate::event::BazelCmdResponse::Info(info)) => {
+        state.bazel_info = *info;
+      }
       Event::Quit => {
         state.should_quit = true;
       }
-      Event::Tick => (),
+      Event::Tick => {
+        // TODO: Do a tick thing if needed
+      }
       _ => (),
     }
   }
@@ -35,13 +46,16 @@ pub async fn run(mut terminal: DefaultTerminal) -> Result<()> {
 
 fn handle_crossterm_events(
   dispatch: &mut Dispatch,
-  event: crossterm::event::Event,
+  event: &crossterm::event::Event,
 ) {
   match event {
     crossterm::event::Event::Key(key_event)
       if key_event.kind == crossterm::event::KeyEventKind::Press =>
     {
       match key_event.code {
+        crossterm::event::KeyCode::Char('t') => {
+          dispatch.send(Event::BazelRequest(BazelCommand::Info));
+        }
         crossterm::event::KeyCode::Char('q') => dispatch.send(Event::Quit),
         _ => (),
       }
