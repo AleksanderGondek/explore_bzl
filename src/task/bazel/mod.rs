@@ -1,9 +1,11 @@
+use std::collections::BTreeMap;
+
 use tokio::{process::Command, sync::mpsc};
 
 use crate::{
   Result,
   event::{BazelCommand, Event},
-  model::BazelInfo,
+  model::{BazelInfo, BazelTarget},
 };
 
 pub struct BazelTask {
@@ -22,7 +24,7 @@ impl BazelTask {
 
   pub async fn run(&self) -> Result<()> {
     // TODO: Each command, separate handler
-    if let BazelCommand::Info = self.command {
+    if let BazelCommand::Info = &self.command {
       // No unwrap please
       let Ok(output) = Command::new("bazel").arg("info").output().await else {
         // TODO: Better eror handling
@@ -37,6 +39,56 @@ impl BazelTask {
         ))),
       ));
     }
+    if let BazelCommand::Query(crate::event::BazelQuery::Target(label)) =
+      &self.command
+    {
+      let Ok(output) = Command::new("bazel")
+        .args(["query", "--output=build", label])
+        .output()
+        .await
+      else {
+        return Err(crate::Error::Imaginary);
+      };
+      let targets = BTreeMap::<String, BazelTarget>::from_iter([(
+        label.clone(),
+        BazelTarget {
+          label: label.clone(),
+          starlark_repr: Some(
+            String::from_utf8_lossy(&output.stdout).to_string(),
+          ),
+        },
+      )]);
+      let _ = self.sender.send(Event::BazelResponse(
+        crate::event::BazelCmdResponse::Query(Box::new(targets)),
+      ));
+    }
+    if let BazelCommand::Query(crate::event::BazelQuery::Targets) =
+      &self.command
+    {
+      let Ok(output) = Command::new("bazel")
+        .args(["query", "--output=label", "//..."])
+        .output()
+        .await
+      else {
+        return Err(crate::Error::Imaginary);
+      };
+      let targets = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(|l| {
+          (
+            l.to_string(),
+            BazelTarget {
+              label: l.to_string(),
+              starlark_repr: None,
+            },
+          )
+        })
+        .collect::<BTreeMap<String, BazelTarget>>();
+      let _ = self.sender.send(Event::BazelResponse(
+        crate::event::BazelCmdResponse::Query(Box::new(targets)),
+      ));
+    }
+
     Ok(())
   }
 }

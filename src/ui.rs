@@ -50,26 +50,14 @@ impl StatefulWidget for Ui {
     // Left side
     let tab_content_block = Block::bordered().padding(Padding::symmetric(2, 1));
     let mut left_list_state = ListState::default();
-    left_list_state.select_last();
-    let left_list = List::new([
-      "a/private/implements (package)",
-      "a/private/includes (package)",
-      "a/public/implements (package)",
-      "a/public/includes (package)",
-      "b/private/implements (package)",
-      "b/private/includes (package)",
-      "b/public/implements (package)",
-      "libuuid (package)",
-      "simple/cc_so_import (package)",
-      "simple/deck (package)",
-      "simple/main (package)",
-      "simple/messenger (package)",
-      "simple/random (package)",
-      ":DEV_NULL_PLATFORM",
-      "x86_64_linux_remote",
-    ])
-    .highlight_symbol("> ")
-    .block(tab_content_block);
+    if !state.targets.is_empty() {
+      left_list_state.select(state.targets_selection);
+    }
+
+    let left_list =
+      List::new(state.targets.keys().map(std::string::String::as_str))
+        .highlight_symbol("> ")
+        .block(tab_content_block);
     StatefulWidget::render(
       left_list,
       bottom_layout[0],
@@ -86,14 +74,31 @@ impl StatefulWidget for Ui {
     // Right side
     let rtab_content_block =
       Block::bordered().padding(Padding::symmetric(2, 1));
-    let target_overivew_lines: Vec<ratatui::text::Line<'static>> = vec![
-            r"platform(".into(),
-            r#"  name = "x86_64_linux_remote","#.into(),
-            r#"  visibility = ["//visibility:public"],"#.into(),
-            r#"  constraint_values = ["@platforms//os:linux", "@platforms//cpu:x86_64"],"#.into(),
-            r#"  exec_properties = {"OSFamily": "Linux", "container-image": "docker://harbor.apps.morrigna.rules-nix.build/explore-bzl/ash-bash-coreutils-i686-cc-x86_64-cc:myl0xwv1z442sc5ci982qny9lb0c0giv"},"#.into(),
-            r")".into(),
-        ];
+
+    // TODO: Greatly improve
+    let target_repr: Vec<String>;
+    if let Some(target) = state.selected_target() {
+      if let Some(repr) = &target.starlark_repr {
+        target_repr = repr.lines().map(std::convert::Into::into).collect();
+      } else {
+        target_repr = Vec::default();
+      }
+    } else {
+      target_repr = Vec::default();
+    }
+
+    let target_overivew_lines: Vec<ratatui::text::Line<'static>> = target_repr
+      .iter()
+      .map(|l| ratatui::text::Line::from(l.clone()))
+      .collect();
+    // let target_overivew_lines: Vec<ratatui::text::Line<'static>> = vec![
+    //         r"platform(".into(),
+    //         r#"  name = "x86_64_linux_remote","#.into(),
+    //         r#"  visibility = ["//visibility:public"],"#.into(),
+    //         r#"  constraint_values = ["@platforms//os:linux", "@platforms//cpu:x86_64"],"#.into(),
+    //         r#"  exec_properties = {"OSFamily": "Linux", "container-image": "docker://harbor.apps.morrigna.rules-nix.build/explore-bzl/ash-bash-coreutils-i686-cc-x86_64-cc:myl0xwv1z442sc5ci982qny9lb0c0giv"},"#.into(),
+    //         r")".into(),
+    //     ];
     let target_overview =
       Paragraph::new(target_overivew_lines).block(rtab_content_block);
     target_overview.render(bottom_layout[1], buf);

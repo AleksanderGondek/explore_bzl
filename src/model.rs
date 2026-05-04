@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 #[derive(Clone, Debug, Default)]
 pub struct BazelInfo {
   pub bazel_bin: Option<String>,
@@ -26,9 +28,26 @@ pub struct BazelInfo {
   pub workspace: Option<String>,
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct BazelTarget {
+  pub label: String,
+  pub starlark_repr: Option<String>,
+}
+
 #[derive(Debug, Default)]
 pub struct Model {
   pub bazel_info: BazelInfo,
   pub should_quit: bool,
-  pub temp: String,
+  pub targets: BTreeMap<String, BazelTarget>,
+  pub targets_selection: Option<usize>,
+}
+
+impl Model {
+  #[must_use] 
+  pub fn selected_target(&self) -> Option<&BazelTarget> {
+    if let Some(i) = self.targets_selection {
+      return self.targets.iter().take(i + 1).next_back().map(|(_, t)| t);
+    }
+    None
+  }
 }
