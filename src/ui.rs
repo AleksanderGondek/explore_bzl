@@ -41,6 +41,8 @@ impl StatefulWidget for Ui {
                 "Workspace: ".bold(),
                 state.bazel_info.workspace.clone().unwrap_or("<elo>".to_string()).into(),
             ]),
+            // DEBUG
+            ratatui::text::Line::from(format!("{:?}", &state.selected_target)),
         ];
 
     let top_paragraph = Paragraph::new(statuses)
@@ -49,10 +51,14 @@ impl StatefulWidget for Ui {
 
     // Left side
     let tab_content_block = Block::bordered().padding(Padding::symmetric(2, 1));
-    let mut left_list_state = ListState::default();
-    if !state.targets.is_empty() {
-      left_list_state.select(state.targets_selection);
-    }
+    let mut left_list_state = ListState::default().with_selected(
+      state.targets.keys().enumerate().find_map(
+        |(i, target_label)| match &state.selected_target {
+          Some(selected_label) if target_label == selected_label => Some(i),
+          _ => None,
+        },
+      ),
+    );
 
     let left_list =
       List::new(state.targets.keys().map(std::string::String::as_str))
@@ -76,29 +82,30 @@ impl StatefulWidget for Ui {
       Block::bordered().padding(Padding::symmetric(2, 1));
 
     // TODO: Greatly improve
-    let target_repr: Vec<String>;
-    if let Some(target) = state.selected_target() {
-      if let Some(repr) = &target.starlark_repr {
-        target_repr = repr.lines().map(std::convert::Into::into).collect();
-      } else {
-        target_repr = Vec::default();
-      }
-    } else {
-      target_repr = Vec::default();
-    }
+    let target_repr_lines: Vec<String> =
+      state
+        .selected_target
+        .clone()
+        .map_or(Vec::default(), |selected_label| {
+          state.targets.get(&selected_label).map_or(
+            Vec::default(),
+            |selected_target| {
+              selected_target
+                .starlark_repr
+                .clone()
+                .map_or(Vec::default(), |repr| {
+                  repr.lines().map(std::convert::Into::into).collect()
+                })
+            },
+          )
+        });
 
-    let target_overivew_lines: Vec<ratatui::text::Line<'static>> = target_repr
-      .iter()
-      .map(|l| ratatui::text::Line::from(l.clone()))
-      .collect();
-    // let target_overivew_lines: Vec<ratatui::text::Line<'static>> = vec![
-    //         r"platform(".into(),
-    //         r#"  name = "x86_64_linux_remote","#.into(),
-    //         r#"  visibility = ["//visibility:public"],"#.into(),
-    //         r#"  constraint_values = ["@platforms//os:linux", "@platforms//cpu:x86_64"],"#.into(),
-    //         r#"  exec_properties = {"OSFamily": "Linux", "container-image": "docker://harbor.apps.morrigna.rules-nix.build/explore-bzl/ash-bash-coreutils-i686-cc-x86_64-cc:myl0xwv1z442sc5ci982qny9lb0c0giv"},"#.into(),
-    //         r")".into(),
-    //     ];
+    let target_overivew_lines: Vec<ratatui::text::Line<'static>> =
+      target_repr_lines
+        .iter()
+        .map(|l| ratatui::text::Line::from(l.clone()))
+        .collect();
+
     let target_overview =
       Paragraph::new(target_overivew_lines).block(rtab_content_block);
     target_overview.render(bottom_layout[1], buf);

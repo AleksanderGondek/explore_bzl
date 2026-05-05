@@ -38,34 +38,16 @@ pub async fn run(mut terminal: DefaultTerminal) -> Result<()> {
             .targets
             .insert(label.to_owned(), target_details.clone());
         }
-        if !state.targets.is_empty() && state.targets_selection.is_none() {
-          state.targets_selection = Some(0);
-        }
-        // state.targets = *response;
       }
       Event::Quit => {
         state.should_quit = true;
       }
-      Event::SelectUp => match state.targets_selection {
-        Some(0) => {
-          state.targets_selection = Some(state.targets.len());
-        }
-        Some(selection) => state.targets_selection = Some(selection - 1),
-        _ if !state.targets.is_empty() => state.targets_selection = Some(0),
-        _ => (),
-      },
-      Event::SelectDown => match state.targets_selection {
-        Some(selection) => {
-          state.targets_selection = Some((selection + 1) % state.targets.len());
-          if let Some(target) = state.selected_target() {
-            dispatch.send(Event::BazelRequest(BazelCommand::Query(
-              BazelQuery::Target(target.label.clone()),
-            )));
-          }
-        }
-        _ if !state.targets.is_empty() => state.targets_selection = Some(0),
-        _ => (),
-      },
+      Event::SelectUp => {
+        target_selection(&mut dispatch, &mut state, &TargetSelection::Up);
+      }
+      Event::SelectDown => {
+        target_selection(&mut dispatch, &mut state, &TargetSelection::Down);
+      }
       Event::Tick => {
         // TODO: Do a tick thing if needed
       }
@@ -74,6 +56,69 @@ pub async fn run(mut terminal: DefaultTerminal) -> Result<()> {
   }
 
   Ok(())
+}
+
+#[derive(Clone, Debug)]
+enum TargetSelection {
+  Up,
+  Down,
+}
+
+fn target_selection(
+  dispatch: &mut Dispatch,
+  state: &mut Model,
+  op: &TargetSelection,
+) {
+  #[allow(clippy::unnecessary_find_map)]
+  let Some(current_index) =
+    state
+      .targets
+      .keys()
+      .enumerate()
+      .find_map(|(i, target_label)| match &state.selected_target {
+        // If I roll select_abel == target lable into match, it won't work
+        Some(selected_label) => {
+          if *selected_label == *target_label {
+            Some(i)
+          } else {
+            None
+          }
+        }
+        _ => Some(0),
+      })
+  else {
+    return;
+  };
+
+  let new_index = match op {
+    TargetSelection::Up => {
+      if current_index == 0 {
+        state.targets.len() - 1
+      } else {
+        current_index - 1
+      }
+    }
+    TargetSelection::Down => (current_index + 1) % state.targets.len(),
+  };
+
+  state.selected_target =
+    state
+      .targets
+      .keys()
+      .enumerate()
+      .find_map(|(i, target_label)| {
+        if i == new_index {
+          Some(target_label.clone())
+        } else {
+          None
+        }
+      });
+
+  if let Some(selected_target) = &state.selected_target.clone() {
+    dispatch.send(Event::BazelRequest(BazelCommand::Query(
+      BazelQuery::Target(selected_target.clone()),
+    )));
+  }
 }
 
 fn handle_crossterm_events(

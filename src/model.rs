@@ -38,16 +38,7 @@ pub struct BazelTarget {
 pub struct Model {
   pub bazel_info: BazelInfo,
   pub should_quit: bool,
+  // TODO: Move away from String into type Label
+  pub selected_target: Option<String>,
   pub targets: BTreeMap<String, BazelTarget>,
-  pub targets_selection: Option<usize>,
-}
-
-impl Model {
-  #[must_use] 
-  pub fn selected_target(&self) -> Option<&BazelTarget> {
-    if let Some(i) = self.targets_selection {
-      return self.targets.iter().take(i + 1).next_back().map(|(_, t)| t);
-    }
-    None
-  }
 }
