@@ -9,3 +9,6 @@ futures = "0.3.32"
 ratatui = "0.30.0"
 thiserror = "2.0.18"
 tokio = { version = "1.52.1", features= ["macros", "process", "rt", "rt-multi-thread", "sync", "time"] }
+
+[build-dependencies]
+protobuf-codegen = "3.7.2"

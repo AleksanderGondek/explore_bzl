@@ -10,6 +10,7 @@
   niv,
   statix,
   deadnix,
+  protobuf,
   rust,
   rust-analyzer,
 } @ args: let
