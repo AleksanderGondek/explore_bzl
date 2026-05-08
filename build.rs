@@ -1,8 +1,11 @@
-fn main() {
-  protobuf_codegen::Codegen::new()
-    .protoc()
-    .includes(["src/bazel_proto"])
-    .input("src/bazel_proto/src/main/protobuf/build.proto")
-    .out_dir("src/bazel_proto")
-    .run_from_script();
+use std::io::Result;
+
+fn main() -> Result<()> {
+  prost_build::compile_protos(
+    &[
+      "./src/bazel_proto/src/main/protobuf/build.proto",
+      "./src/bazel_proto/src/main/protobuf/stardoc_output.proto",
+    ],
+    &["./src/bazel_proto"],
+  )
 }

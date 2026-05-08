@@ -1,3 +1,4 @@
+pub mod bazel_proto;
 pub mod dispatch;
 pub mod error;
 pub mod event;
