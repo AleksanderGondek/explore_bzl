@@ -119,6 +119,8 @@ fn target_selection(
       });
 
   if let Some(selected_target) = &state.selected_target.clone() {
+    // TODO: How to approach state invalidation?
+    // perhaps be naive and re-take each time..
     dispatch.send(Event::BazelRequest(BazelCommand::QueryForRepr(Box::new(
       selected_target.clone(),
     ))));

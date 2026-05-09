@@ -4,6 +4,9 @@ use crossterm::event::Event as CrosstermEvent;
 
 use crate::model::BazelInfo;
 
+// TODO: Remove Box<String>
+// TODO: Introduce COWs
+
 #[derive(Clone, Debug)]
 pub enum BazelQuery {
   Custom(Box<Vec<String>>),
