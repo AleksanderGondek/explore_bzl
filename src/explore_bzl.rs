@@ -39,6 +39,10 @@ pub async fn run(mut terminal: DefaultTerminal) -> Result<()> {
             .insert(label.to_owned(), target_details.clone());
         }
       }
+      Event::BazelResponse(crate::event::BazelCmdResponse::QueryForRepr(r)) => {
+        let (target, starlark_repr) = *r;
+        state.targets_repr.insert(target, starlark_repr);
+      }
       Event::Quit => {
         state.should_quit = true;
       }
@@ -115,9 +119,9 @@ fn target_selection(
       });
 
   if let Some(selected_target) = &state.selected_target.clone() {
-    dispatch.send(Event::BazelRequest(BazelCommand::Query(
-      BazelQuery::Target(selected_target.clone()),
-    )));
+    dispatch.send(Event::BazelRequest(BazelCommand::QueryForRepr(Box::new(
+      selected_target.clone(),
+    ))));
   }
 }
 

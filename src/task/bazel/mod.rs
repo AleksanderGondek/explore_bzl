@@ -1,11 +1,13 @@
 use std::collections::BTreeMap;
 
+use prost::Message;
 use tokio::{process::Command, sync::mpsc};
 
 use crate::{
   Result,
+  bazel_proto::blaze_query::Target,
   event::{BazelCommand, Event},
-  model::{BazelInfo, BazelTarget},
+  model::BazelInfo,
 };
 
 pub struct BazelTask {
@@ -39,9 +41,7 @@ impl BazelTask {
         ))),
       ));
     }
-    if let BazelCommand::Query(crate::event::BazelQuery::Target(label)) =
-      &self.command
-    {
+    if let BazelCommand::QueryForRepr(label) = &self.command {
       let Ok(output) = Command::new("bazel")
         .args(["query", "--output=build", label])
         .output()
@@ -49,43 +49,42 @@ impl BazelTask {
       else {
         return Err(crate::Error::Imaginary);
       };
-      let targets = BTreeMap::<String, BazelTarget>::from_iter([(
-        label.clone(),
-        BazelTarget {
-          label: label.clone(),
-          starlark_repr: Some(
-            String::from_utf8_lossy(&output.stdout).to_string(),
-          ),
-        },
-      )]);
+      let starlark_repr = String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(std::string::ToString::to_string)
+        .collect::<Vec<String>>();
       let _ = self.sender.send(Event::BazelResponse(
-        crate::event::BazelCmdResponse::Query(Box::new(targets)),
+        crate::event::BazelCmdResponse::QueryForRepr(Box::new((
+          *label.clone(),
+          starlark_repr,
+        ))),
       ));
     }
     if let BazelCommand::Query(crate::event::BazelQuery::Targets) =
       &self.command
     {
       let Ok(output) = Command::new("bazel")
-        .args(["query", "--output=label", "//..."])
+        .args(["query", "--output=proto", "//..."])
         .output()
         .await
       else {
         return Err(crate::Error::Imaginary);
       };
-      let targets = String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .map(|l| {
-          (
-            l.to_string(),
-            BazelTarget {
-              label: l.to_string(),
-              starlark_repr: None,
-            },
-          )
-        })
-        .collect::<BTreeMap<String, BazelTarget>>();
+
+      let x =
+        crate::bazel_proto::blaze_query::QueryResult::decode(&*output.stdout)?
+          .target
+          .iter()
+          .filter_map(|target| {
+            target
+              .rule
+              .as_ref()
+              .map(|r| (r.name.clone(), target.clone()))
+          })
+          .collect::<BTreeMap<String, Target>>();
+
       let _ = self.sender.send(Event::BazelResponse(
-        crate::event::BazelCmdResponse::Query(Box::new(targets)),
+        crate::event::BazelCmdResponse::Query(Box::new(x)),
       ));
     }
 

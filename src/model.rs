@@ -28,17 +28,12 @@ pub struct BazelInfo {
   pub workspace: Option<String>,
 }
 
-#[derive(Clone, Debug, Default)]
-pub struct BazelTarget {
-  pub label: String,
-  pub starlark_repr: Option<String>,
-}
-
 #[derive(Debug, Default)]
 pub struct Model {
   pub bazel_info: BazelInfo,
   pub should_quit: bool,
   // TODO: Move away from String into type Label
   pub selected_target: Option<String>,
-  pub targets: BTreeMap<String, BazelTarget>,
+  pub targets_repr: BTreeMap<String, Vec<String>>,
+  pub targets: BTreeMap<String, crate::bazel_proto::blaze_query::Target>,
 }

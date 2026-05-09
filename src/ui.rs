@@ -19,7 +19,7 @@ impl StatefulWidget for Ui {
   fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
     let layout = Layout::default()
       .direction(ratatui::layout::Direction::Vertical)
-      .constraints(vec![Constraint::Percentage(10), Constraint::Percentage(90)])
+      .constraints(vec![Constraint::Percentage(15), Constraint::Percentage(85)])
       .spacing(1)
       .split(area);
 
@@ -87,17 +87,11 @@ impl StatefulWidget for Ui {
         .selected_target
         .clone()
         .map_or(Vec::default(), |selected_label| {
-          state.targets.get(&selected_label).map_or(
-            Vec::default(),
-            |selected_target| {
-              selected_target
-                .starlark_repr
-                .clone()
-                .map_or(Vec::default(), |repr| {
-                  repr.lines().map(std::convert::Into::into).collect()
-                })
-            },
-          )
+          state
+            .targets_repr
+            .get(&selected_label)
+            .unwrap_or(&Vec::default())
+            .clone()
         });
 
     let target_overivew_lines: Vec<ratatui::text::Line<'static>> =

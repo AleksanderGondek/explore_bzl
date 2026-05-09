@@ -2,13 +2,13 @@ use std::collections::BTreeMap;
 
 use crossterm::event::Event as CrosstermEvent;
 
-use crate::model::{BazelInfo, BazelTarget};
+use crate::model::BazelInfo;
 
 #[derive(Clone, Debug)]
 pub enum BazelQuery {
   Custom(Box<Vec<String>>),
   Packages,
-  Target(String),
+  Target(Box<String>),
   Targets,
 }
 
@@ -19,6 +19,7 @@ pub enum BazelCommand {
   Cquery,
   Info,
   Query(BazelQuery),
+  QueryForRepr(Box<String>),
 }
 
 #[derive(Clone, Debug)]
@@ -28,7 +29,8 @@ pub enum BazelCmdResponse {
   Cquery,
   Info(Box<BazelInfo>),
   // TODO: Custom type: Label?
-  Query(Box<BTreeMap<String, BazelTarget>>),
+  Query(Box<BTreeMap<String, crate::bazel_proto::blaze_query::Target>>),
+  QueryForRepr(Box<(String, Vec<String>)>),
 }
 
 #[derive(Clone, Debug)]
