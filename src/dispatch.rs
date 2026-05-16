@@ -1,6 +1,6 @@
 use crate::{
   Result,
-  event::Event,
+  event::{BazelCommand, Event},
   task::{BazelTask, CrosstermEventsHandlerTask, TickTask},
 };
 
@@ -28,17 +28,34 @@ impl Dispatch {
   }
 }
 
+impl Dispatch {
+  #[must_use]
+  pub fn init(self) -> Self {
+    let bzl_info = BazelTask::new(BazelCommand::Info, self.sender.clone());
+    let bzl_targets = BazelTask::new(
+      BazelCommand::Query(crate::event::BazelQuery::Targets),
+      self.sender.clone(),
+    );
+    let crossterm_events_handler =
+      CrosstermEventsHandlerTask::new(self.sender.clone());
+    let ticker = TickTask::new(self.sender.clone());
+
+    // Ticker worker
+    tokio::spawn(async move { ticker.run().await });
+    // Keyboard events handler
+    tokio::spawn(async move { crossterm_events_handler.run().await });
+    // Retrieve bazel info
+    tokio::spawn(async move { bzl_info.run().await });
+    // Retrieve bazel targets
+    tokio::spawn(async move { bzl_targets.run().await });
+
+    self
+  }
+}
+
 impl Default for Dispatch {
   fn default() -> Self {
     let (sender, receiver) = mpsc::unbounded_channel();
-
-    let crossterm_events_handler =
-      CrosstermEventsHandlerTask::new(sender.clone());
-    let ticker = TickTask::new(sender.clone());
-
-    // take out of default, move ot init or something
-    tokio::spawn(async move { ticker.run().await });
-    tokio::spawn(async move { crossterm_events_handler.run().await });
     Self { receiver, sender }
   }
 }

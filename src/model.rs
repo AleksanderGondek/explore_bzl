@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, path::PathBuf, process::Command};
 
 #[derive(Clone, Debug, Default)]
 pub struct BazelInfo {
@@ -28,12 +28,36 @@ pub struct BazelInfo {
   pub workspace: Option<String>,
 }
 
+// TODO: BazelTargetInfo struct
+
 #[derive(Debug, Default)]
 pub struct Model {
+  pub bazel_binary: Option<PathBuf>,
   pub bazel_info: BazelInfo,
   pub should_quit: bool,
   // TODO: Move away from String into type Label
   pub selected_target: Option<String>,
   pub targets_repr: BTreeMap<String, Vec<String>>,
   pub targets: BTreeMap<String, crate::bazel_proto::blaze_query::Target>,
+}
+
+impl Model {
+  #[must_use]
+  pub fn init(mut self) -> Self {
+    self.bazel_binary = Command::new("sh")
+      .args(["-c", "command -v bazel"])
+      .output()
+      .map(|out| {
+        if out.status.success() {
+          Some(PathBuf::from(
+            String::from_utf8_lossy(&out.stdout).to_string(),
+          ))
+        } else {
+          None
+        }
+      })
+      .ok()
+      .flatten();
+    self
+  }
 }

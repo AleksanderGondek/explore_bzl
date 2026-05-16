@@ -1,7 +1,7 @@
 use crate::{
   Result,
   dispatch::Dispatch,
-  event::{BazelCommand, BazelQuery, Event},
+  event::{BazelCommand, Event},
   model::Model,
   ui::Ui,
 };
@@ -9,8 +9,8 @@ use crate::{
 use ratatui::DefaultTerminal;
 
 pub async fn run(mut terminal: DefaultTerminal) -> Result<()> {
-  let mut dispatch = Dispatch::default();
-  let mut state = Model::default();
+  let mut dispatch = Dispatch::default().init();
+  let mut state = Model::default().init();
 
   while !state.should_quit {
     terminal.try_draw(|frame| {
@@ -136,12 +136,6 @@ fn handle_crossterm_events(
       if key_event.kind == crossterm::event::KeyEventKind::Press =>
     {
       match key_event.code {
-        crossterm::event::KeyCode::Char('l') => dispatch.send(
-          Event::BazelRequest(BazelCommand::Query(BazelQuery::Targets)),
-        ),
-        crossterm::event::KeyCode::Char('t') => {
-          dispatch.send(Event::BazelRequest(BazelCommand::Info));
-        }
         crossterm::event::KeyCode::Char('q') => dispatch.send(Event::Quit),
         crossterm::event::KeyCode::Up => dispatch.send(Event::SelectUp),
         crossterm::event::KeyCode::Down => dispatch.send(Event::SelectDown),
