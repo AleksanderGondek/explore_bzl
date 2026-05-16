@@ -4,7 +4,8 @@ use ratatui::{
   style::Stylize,
   symbols,
   widgets::{
-    Block, List, ListState, Padding, Paragraph, StatefulWidget, Tabs, Widget,
+    Block, Borders, List, ListState, Padding, Paragraph, StatefulWidget, Tabs,
+    Widget,
   },
 };
 
@@ -17,17 +18,18 @@ pub struct Ui {}
 impl StatefulWidget for Ui {
   type State = Model;
   fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-    let layout = Layout::default()
+    let main_layout = Layout::default()
       .direction(ratatui::layout::Direction::Vertical)
-      .constraints(vec![Constraint::Percentage(15), Constraint::Percentage(85)])
-      .spacing(1)
+      .constraints(vec![Constraint::Ratio(15, 100), Constraint::Ratio(85, 100)])
       .split(area);
 
-    let bottom_layout = Layout::default()
+    // Top Row Layout:
+    // * Column 1: Bazel Statues
+    // * Column 2: explore_bzl advert
+    let top_row_layout = Layout::default()
       .direction(ratatui::layout::Direction::Horizontal)
-      .constraints(vec![Constraint::Percentage(50), Constraint::Percentage(50)])
-      .spacing(1)
-      .split(layout[1]);
+      .constraints(vec![Constraint::Ratio(85, 100), Constraint::Ratio(15, 100)])
+      .split(main_layout[0]);
 
     let statuses: Vec<ratatui::text::Line<'static>> = vec![
             ratatui::text::Line::from_iter([
@@ -41,16 +43,40 @@ impl StatefulWidget for Ui {
                 "Workspace: ".bold(),
                 state.bazel_info.workspace.clone().unwrap_or("<elo>".to_string()).into(),
             ]),
+            ratatui::text::Line::from_iter(["Bazel output base: ".bold(), state.bazel_info.output_base.clone().unwrap_or("<elo>".to_string()).into()])
             // DEBUG
-            ratatui::text::Line::from(format!("{:?}", &state.selected_target)),
+            // ratatui::text::Line::from(format!("{:?}", &state.selected_target)),
         ];
 
-    let top_paragraph = Paragraph::new(statuses)
+    let bazel_statues = Paragraph::new(statuses)
       .block(Block::new().padding(Padding::symmetric(2, 1)));
-    top_paragraph.render(layout[0], buf);
+    bazel_statues.render(top_row_layout[0], buf);
+
+    let advert = Paragraph::new(vec![
+      ratatui::text::Line::from("explore_bzl")
+        .alignment(ratatui::layout::HorizontalAlignment::Center),
+      ratatui::text::Line::from(format!("v{}", env!("CARGO_PKG_VERSION")))
+        .alignment(ratatui::layout::HorizontalAlignment::Center),
+    ])
+    .block(Block::new().borders(Borders::NONE));
+    advert.render(
+      top_row_layout[1].centered_vertically(Constraint::Length(4)),
+      buf,
+    );
+
+    // Bottom Row Layout:
+    // * Column 1: Target Selection Window
+    // * Column 2: Targets Viewer
+    let bottom_row_layout = Layout::default()
+      .direction(ratatui::layout::Direction::Horizontal)
+      .constraints(vec![Constraint::Percentage(50), Constraint::Percentage(50)])
+      .spacing(1)
+      .split(main_layout[1]);
 
     // Left side
-    let tab_content_block = Block::bordered().padding(Padding::symmetric(2, 1));
+    let tab_content_block = Block::bordered()
+      .padding(Padding::symmetric(2, 1))
+      .title(" Targets: ");
     let mut left_list_state = ListState::default().with_selected(
       state.targets.keys().enumerate().find_map(
         |(i, target_label)| match &state.selected_target {
@@ -66,16 +92,10 @@ impl StatefulWidget for Ui {
         .block(tab_content_block);
     StatefulWidget::render(
       left_list,
-      bottom_layout[0],
+      bottom_row_layout[0],
       buf,
       &mut left_list_state,
     );
-
-    let tabs = Tabs::new(vec!["[P]ackage browser", "[F]uzzy search", "[R]aw"])
-      .select(0)
-      .divider(symbols::DOT)
-      .padding(" ", " ");
-    tabs.render(bottom_layout[0] + Offset::new(1, 0), buf);
 
     // Right side
     let rtab_content_block =
@@ -102,12 +122,13 @@ impl StatefulWidget for Ui {
 
     let target_overview =
       Paragraph::new(target_overivew_lines).block(rtab_content_block);
-    target_overview.render(bottom_layout[1], buf);
+    target_overview.render(bottom_row_layout[1], buf);
 
-    let tabs = Tabs::new(vec!["[Q]uery", "[C]query", "[A]query"])
-      .select(0)
-      .divider(symbols::DOT)
-      .padding(" ", " ");
-    tabs.render(bottom_layout[1] + Offset::new(1, 0), buf);
+    let tabs =
+      Tabs::new(vec!["[S]tarlark", "[A]ttributes", "[C]onfig", "[A]ctions"])
+        .select(0)
+        .divider(symbols::DOT)
+        .padding(" ", " ");
+    tabs.render(bottom_row_layout[1] + Offset::new(1, 0), buf);
   }
 }
