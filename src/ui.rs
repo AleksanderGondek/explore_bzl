@@ -3,6 +3,7 @@ use ratatui::{
   layout::{Constraint, Layout, Offset, Rect},
   style::Stylize,
   symbols,
+  text::Span,
   widgets::{
     Block, Borders, List, ListState, Padding, Paragraph, StatefulWidget, Tabs,
     Widget,
@@ -10,6 +11,19 @@ use ratatui::{
 };
 
 use crate::model::Model;
+
+trait Spanify {
+  fn spanify(&self) -> Span<'static>;
+}
+
+impl<T: Clone + ToString> Spanify for Option<T> {
+  fn spanify(&self) -> Span<'static> {
+    self
+      .clone()
+      .map_or_else(|| "loading...".to_string(), |e| e.to_string())
+      .into()
+  }
+}
 
 // TODO: In future move this into ui.rs and kill this module
 #[derive(Debug, Default)]
@@ -45,39 +59,19 @@ impl StatefulWidget for Ui {
       ]),
       ratatui::text::Line::from_iter([
         "Bazel version: ".bold(),
-        state
-          .bazel_info
-          .release
-          .clone()
-          .unwrap_or("<ELO>".to_string())
-          .into(),
+        state.bazel_info.release.spanify(),
       ]), //TODO: This is ugly, needs fixing
       ratatui::text::Line::from_iter([
         "Bazel server PID: ".bold(),
-        state
-          .bazel_info
-          .server_pid
-          .clone()
-          .unwrap_or("<elo>".to_string())
-          .into(),
+        state.bazel_info.server_pid.spanify(),
       ]),
       ratatui::text::Line::from_iter([
         "Workspace: ".bold(),
-        state
-          .bazel_info
-          .workspace
-          .clone()
-          .unwrap_or("<elo>".to_string())
-          .into(),
+        state.bazel_info.workspace.spanify(),
       ]),
       ratatui::text::Line::from_iter([
         "Bazel output base: ".bold(),
-        state
-          .bazel_info
-          .output_base
-          .clone()
-          .unwrap_or("<elo>".to_string())
-          .into(),
+        state.bazel_info.output_base.spanify(),
       ]), // DEBUG
           // ratatui::text::Line::from(format!("{:?}", &state.selected_target)),
     ];
