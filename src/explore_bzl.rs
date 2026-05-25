@@ -2,7 +2,7 @@ use crate::{
   Result,
   dispatch::Dispatch,
   event::{BazelCommand, Event},
-  model::Model,
+  model::{Model, Pane},
   ui::Ui,
 };
 
@@ -45,6 +45,9 @@ pub async fn run(mut terminal: DefaultTerminal) -> Result<()> {
       }
       Event::Quit => {
         state.should_quit = true;
+      }
+      Event::SelectPane(pane) => {
+        state.selected_pane = pane;
       }
       Event::SelectUp => {
         target_selection(&mut dispatch, &mut state, &TargetSelection::Up);
@@ -136,6 +139,15 @@ fn handle_crossterm_events(
       if key_event.kind == crossterm::event::KeyEventKind::Press =>
     {
       match key_event.code {
+        crossterm::event::KeyCode::Char('c') => {
+          dispatch.send(Event::SelectPane(Pane::Config));
+        }
+        crossterm::event::KeyCode::Char('r') => {
+          dispatch.send(Event::SelectPane(Pane::StarlarkRepr));
+        }
+        crossterm::event::KeyCode::Char('t') => {
+          dispatch.send(Event::SelectPane(Pane::Attributes));
+        }
         crossterm::event::KeyCode::Char('q') => dispatch.send(Event::Quit),
         crossterm::event::KeyCode::Up => dispatch.send(Event::SelectUp),
         crossterm::event::KeyCode::Down => dispatch.send(Event::SelectDown),

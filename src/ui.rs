@@ -10,7 +10,8 @@ use ratatui::{
   },
 };
 
-use crate::model::Model;
+use crate::bazel_proto::blaze_query::attribute::Discriminator;
+use crate::model::{Model, Pane};
 
 trait Spanify {
   fn spanify(&self) -> Span<'static>;
@@ -22,6 +23,80 @@ impl<T: Clone + ToString> Spanify for Option<T> {
       .clone()
       .map_or_else(|| "loading...".to_string(), |e| e.to_string())
       .into()
+  }
+}
+
+trait NamingisDiffcult {
+  fn stringfy(&self) -> String;
+}
+
+// TODO: Currently \n is not handled in output, should be!
+impl NamingisDiffcult for crate::bazel_proto::blaze_query::Attribute {
+  fn stringfy(&self) -> String {
+    let value = match self.r#type() {
+      Discriminator::Integer => format!("{}", self.int_value()),
+      Discriminator::String
+      | Discriminator::Label
+      | Discriminator::Output
+      | Discriminator::Boolean => self.string_value().to_string(),
+      Discriminator::StringList
+      | Discriminator::LabelList
+      | Discriminator::OutputList
+      | Discriminator::DistributionSet => {
+        self.string_list_value.join(",\n  ").clone()
+      }
+      Discriminator::License => self
+        .license
+        .as_ref()
+        .map_or(String::default(), |lic| lic.license_type.join(" "))
+        .clone(),
+      Discriminator::StringDict => self
+        .string_dict_value
+        .iter()
+        .map(|entry| format!("{}: {}", entry.key, entry.value))
+        .collect::<Vec<_>>()
+        .join(",\n  ")
+        .clone(),
+      Discriminator::FilesetEntryList => {
+        format!("{:#?}", self.fileset_list_value)
+      } // Prettier?
+      Discriminator::LabelListDict | Discriminator::StringListDict => self
+        .string_list_dict_value
+        .iter()
+        .map(|entry| format!("{}: {}", entry.key, entry.value.join(",\n  ")))
+        .collect::<Vec<_>>()
+        .join(",\n  ")
+        .clone(),
+      Discriminator::Tristate => format!("{:#?}", self.tristate_value()), // Prettier?
+      Discriminator::IntegerList => self
+        .int_list_value
+        .iter()
+        .map(|v| format!("{v}"))
+        .collect::<Vec<_>>()
+        .join(", ")
+        .clone(),
+      Discriminator::Unknown => "Unknown!".to_string(),
+      Discriminator::LabelDictUnary => {
+        format!("{:#?}", self.label_dict_unary_value)
+      } // Prettier?
+      Discriminator::SelectorList => format!("{:#?}", self.selector_list), // Improve
+      Discriminator::LabelKeyedStringDict => {
+        format!(
+          "{:#?}",
+          self
+            .label_keyed_string_dict_value
+            .iter()
+            .map(|entry| format!("{}: {}", entry.key, entry.value))
+            .collect::<Vec<_>>()
+            .join(",\n  ")
+        )
+      } // Prettier?
+      Discriminator::DeprecatedStringDictUnary => {
+        format!("{:#?}", self.deprecated_string_dict_unary_value)
+      } // Prettier?
+    };
+
+    format!("{} = {}", self.name, value)
   }
 }
 
@@ -54,7 +129,7 @@ impl StatefulWidget for Ui {
           .bazel_binary
           .clone()
           .map(|pth| pth.clone().to_string_lossy().to_string())
-          .unwrap()
+          .unwrap() // TODO: Handling of bazel binary not being found
           .into(),
       ]),
       ratatui::text::Line::from_iter([
@@ -129,31 +204,74 @@ impl StatefulWidget for Ui {
     let rtab_content_block =
       Block::bordered().padding(Padding::symmetric(2, 1));
 
-    // TODO: Greatly improve
-    let target_repr_lines: Vec<String> =
-      state
-        .selected_target
-        .clone()
-        .map_or(Vec::default(), |selected_label| {
-          state
-            .targets_repr
-            .get(&selected_label)
-            .unwrap_or(&Vec::default())
-            .clone()
-        });
+    // TODO: This is a nasty
+    let target_repr_lines: Vec<String>;
+    let target_overview_lines: Vec<ratatui::text::Line<'static>>;
+    match state.selected_pane {
+      Pane::StarlarkRepr => {
+        target_repr_lines = state.selected_target.clone().map_or(
+          Vec::default(),
+          |selected_label| {
+            state
+              .targets_repr
+              .get(&selected_label)
+              .unwrap_or(&Vec::default())
+              .clone()
+          },
+        );
 
-    let target_overivew_lines: Vec<ratatui::text::Line<'static>> =
-      target_repr_lines
-        .iter()
-        .map(|l| ratatui::text::Line::from(l.clone()))
-        .collect();
+        target_overview_lines = target_repr_lines
+          .iter()
+          .map(|l| ratatui::text::Line::from(l.clone()))
+          .collect();
+      }
+      Pane::Attributes => {
+        target_repr_lines = state.selected_target.clone().map_or(
+          Vec::default(),
+          |selected_label| {
+            state
+              .targets
+              .get(&selected_label)
+              .unwrap()
+              .rule
+              .as_ref()
+              .unwrap()
+              .attribute
+              .iter()
+              .map(NamingisDiffcult::stringfy)
+              .collect()
+          },
+        );
+
+        target_overview_lines = target_repr_lines
+          .iter()
+          .map(|l| ratatui::text::Line::from(l.clone()))
+          .collect();
+      }
+      Pane::Config => {
+        target_repr_lines = vec!["Config!".to_string()];
+
+        target_overview_lines = target_repr_lines
+          .iter()
+          .map(|l| ratatui::text::Line::from(l.clone()))
+          .collect();
+      }
+      Pane::Actions => {
+        target_repr_lines = vec!["Actions!".to_string()];
+
+        target_overview_lines = target_repr_lines
+          .iter()
+          .map(|l| ratatui::text::Line::from(l.clone()))
+          .collect();
+      }
+    }
 
     let target_overview =
-      Paragraph::new(target_overivew_lines).block(rtab_content_block);
+      Paragraph::new(target_overview_lines).block(rtab_content_block);
     target_overview.render(bottom_row_layout[1], buf);
 
-    let tabs = Tabs::new(vec!["[R]epr", "[A]ttrs", "[C]onfig", "[A]ctions"])
-      .select(0)
+    let tabs = Tabs::new(vec!["[R]epr", "A[t]trs", "[C]onfig", "[A]ctions"])
+      .select(Into::<usize>::into(state.selected_pane.clone()))
       .divider(symbols::DOT)
       .padding(" ", " ");
     tabs.render(bottom_row_layout[1] + Offset::new(1, 0), buf);

@@ -30,13 +30,35 @@ pub struct BazelInfo {
 
 // TODO: BazelTargetInfo struct
 
+#[derive(Clone, Debug, Default)]
+pub enum Pane {
+  #[default]
+  StarlarkRepr = 0,
+  Attributes = 1,
+  Config = 2,
+  Actions = 3,
+}
+
+impl std::convert::From<Pane> for usize {
+  fn from(val: Pane) -> Self {
+    match val {
+      Pane::StarlarkRepr => 0,
+      Pane::Attributes => 1,
+      Pane::Config => 2,
+      Pane::Actions => 3,
+    }
+  }
+}
+
 #[derive(Debug, Default)]
 pub struct Model {
   pub bazel_binary: Option<PathBuf>,
   pub bazel_info: BazelInfo,
   pub should_quit: bool,
+  pub selected_pane: Pane,
   // TODO: Move away from String into type Label
   pub selected_target: Option<String>,
+  // TODO: unify perheps?
   pub targets_repr: BTreeMap<String, Vec<String>>,
   pub targets: BTreeMap<String, crate::bazel_proto::blaze_query::Target>,
 }

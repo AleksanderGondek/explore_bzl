@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crossterm::event::Event as CrosstermEvent;
 
-use crate::model::BazelInfo;
+use crate::model::{BazelInfo, Pane};
 
 // TODO: Remove Box<String>
 // TODO: Introduce COWs
@@ -44,5 +44,6 @@ pub enum Event {
   Quit,
   SelectDown,
   SelectUp,
+  SelectPane(Pane),
   Tick,
 }
