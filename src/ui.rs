@@ -249,7 +249,25 @@ impl StatefulWidget for Ui {
           .collect();
       }
       Pane::Config => {
-        target_repr_lines = vec!["Config!".to_string()];
+        // target_repr_lines = vec!["Config!".to_string()];
+        target_repr_lines = state.selected_target.clone().map_or(
+          Vec::default(),
+          |selected_label| {
+            //TODO: Improve
+            if !state.targets_cquery.contains_key(&selected_label) {
+              return vec!["Loading...".to_string()];
+            }
+
+            state
+              .targets_cquery
+              .get(&selected_label)
+              .unwrap()
+              .configurations
+              .iter()
+              .map(|cfg| format!("{cfg:#?}"))
+              .collect()
+          },
+        );
 
         target_overview_lines = target_repr_lines
           .iter()

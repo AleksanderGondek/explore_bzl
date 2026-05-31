@@ -58,6 +58,9 @@ pub struct Model {
   pub selected_pane: Pane,
   // TODO: Move away from String into type Label
   pub selected_target: Option<String>,
+  // TODO: definetely unify
+  pub targets_cquery:
+    BTreeMap<String, crate::bazel_proto::analysis::CqueryResult>,
   // TODO: unify perheps?
   pub targets_repr: BTreeMap<String, Vec<String>>,
   pub targets: BTreeMap<String, crate::bazel_proto::blaze_query::Target>,

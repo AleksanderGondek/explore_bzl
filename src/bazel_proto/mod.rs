@@ -1,6 +1,9 @@
 // No influence over structure of generated code
 #![allow(clippy::all)]
 #![allow(clippy::pedantic)]
+pub mod analysis {
+  include!(concat!(env!("OUT_DIR"), "/analysis.rs"));
+}
 pub mod blaze_query {
   include!(concat!(env!("OUT_DIR"), "/blaze_query.rs"));
 }

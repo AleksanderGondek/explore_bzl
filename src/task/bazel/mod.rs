@@ -6,7 +6,7 @@ use tokio::{process::Command, sync::mpsc};
 use crate::{
   Result,
   bazel_proto::blaze_query::Target,
-  event::{BazelCommand, Event},
+  event::{BazelCommand, BazelQuery, Event},
   model::BazelInfo,
 };
 
@@ -85,6 +85,23 @@ impl BazelTask {
 
       let _ = self.sender.send(Event::BazelResponse(
         crate::event::BazelCmdResponse::Query(Box::new(x)),
+      ));
+    }
+    if let BazelCommand::Cquery(BazelQuery::Target(target)) = &self.command {
+      let Ok(output) = Command::new("bazel")
+        .args(["cquery", "--output=proto", target])
+        .output()
+        .await
+      else {
+        return Err(crate::Error::Imaginary);
+      };
+
+      let r: crate::bazel_proto::analysis::CqueryResult =
+        crate::bazel_proto::analysis::CqueryResult::decode(&*output.stdout)?;
+      let _ = self.sender.send(Event::BazelResponse(
+        crate::event::BazelCmdResponse::Cquery(Box::new(BTreeMap::from_iter(
+          [(*target.clone(), r)],
+        ))),
       ));
     }
 

@@ -39,6 +39,13 @@ pub async fn run(mut terminal: DefaultTerminal) -> Result<()> {
             .insert(label.to_owned(), target_details.clone());
         }
       }
+      Event::BazelResponse(crate::event::BazelCmdResponse::Cquery(r)) => {
+        for (label, target_details) in r.iter() {
+          state
+            .targets_cquery
+            .insert(label.clone(), target_details.clone());
+        }
+      }
       Event::BazelResponse(crate::event::BazelCmdResponse::QueryForRepr(r)) => {
         let (target, starlark_repr) = *r;
         state.targets_repr.insert(target, starlark_repr);
@@ -127,6 +134,15 @@ fn target_selection(
     dispatch.send(Event::BazelRequest(BazelCommand::QueryForRepr(Box::new(
       selected_target.clone(),
     ))));
+
+    // match state.selected_pane {
+    //   Pane::Config => {
+    dispatch.send(Event::BazelRequest(BazelCommand::Cquery(
+      crate::event::BazelQuery::Target(Box::new(selected_target.clone())),
+    )));
+    //   }
+    //   _ => (),
+    // }
   }
 }
 

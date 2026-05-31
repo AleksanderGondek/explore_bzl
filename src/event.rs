@@ -19,7 +19,7 @@ pub enum BazelQuery {
 pub enum BazelCommand {
   Aquery,
   Build,
-  Cquery,
+  Cquery(BazelQuery),
   Info,
   Query(BazelQuery),
   QueryForRepr(Box<String>),
@@ -29,7 +29,7 @@ pub enum BazelCommand {
 pub enum BazelCmdResponse {
   Aquery,
   Build,
-  Cquery,
+  Cquery(Box<BTreeMap<String, crate::bazel_proto::analysis::CqueryResult>>),
   Info(Box<BazelInfo>),
   // TODO: Custom type: Label?
   Query(Box<BTreeMap<String, crate::bazel_proto::blaze_query::Target>>),
