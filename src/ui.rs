@@ -32,25 +32,36 @@ trait NamingisDiffcult {
   fn stringfy(&self) -> Vec<String>;
 }
 
-// TODO: Currently \n is not handled in output, should be!
+// TODO(agondek): refactor
+#[allow(clippy::too_many_lines)]
 impl NamingisDiffcult for crate::bazel_proto::blaze_query::Attribute {
   fn stringfy(&self) -> Vec<String> {
     let mut value: VecDeque<String> = match self.r#type() {
       Discriminator::Integer => {
         VecDeque::from_iter([format!("{}", self.int_value())])
       }
-      Discriminator::String
-      | Discriminator::Label
-      | Discriminator::Output
-      | Discriminator::Boolean => {
+      Discriminator::Boolean => {
         VecDeque::from_iter([self.string_value().to_string()])
+      }
+      Discriminator::String | Discriminator::Label | Discriminator::Output => {
+        VecDeque::from_iter([format!("\"{}\"", self.string_value())])
       }
       Discriminator::StringList
       | Discriminator::LabelList
       | Discriminator::OutputList
       | Discriminator::DistributionSet => {
-        VecDeque::from(self.string_list_value.clone())
+        // Ugly
+        let mut result = VecDeque::default();
+        if !self.string_list_value.is_empty() {
+          result.push_back("[".to_string());
+          result.extend(
+            self.string_list_value.iter().map(|v| format!("  \"{v}\",")),
+          );
+          result.push_back("],".to_string());
+        }
+        result
       }
+      // TODO(agondek): Improve
       Discriminator::License => self
         .license
         .as_ref()
@@ -58,44 +69,81 @@ impl NamingisDiffcult for crate::bazel_proto::blaze_query::Attribute {
           VecDeque::from_iter([format!("{lic:#?}")])
         })
         .clone(),
-      Discriminator::StringDict => self
-        .string_dict_value
-        .iter()
-        .map(|entry| format!("{}: {}", entry.key, entry.value))
-        .collect::<VecDeque<_>>()
-        .clone(),
+      Discriminator::StringDict => {
+        // Ugly
+        let mut result = VecDeque::default();
+        if !self.string_dict_value.is_empty() {
+          result.push_back("{".to_string());
+          result.extend(self.string_dict_value.iter().map(|entry| {
+            format!("  \"{0}\": \"{1}\",", entry.key, entry.value)
+          }));
+          result.push_back("},".to_string());
+        }
+        result
+      }
+      // TODO(agondek): Improve
       Discriminator::FilesetEntryList => self
         .fileset_list_value
         .iter()
         .map(|f| format!("{f:#?}"))
         .collect(), // Prettier?
-      Discriminator::LabelListDict | Discriminator::StringListDict => self
-        .string_list_dict_value
-        .iter()
-        .map(|entry| format!("{}: {}", entry.key, entry.value.join(",\n  ")))
-        .collect::<VecDeque<_>>()
-        .clone(),
+      Discriminator::LabelListDict | Discriminator::StringListDict => {
+        // Ugly
+        let mut result = VecDeque::default();
+        if !self.string_list_dict_value.is_empty() {
+          result.push_back("{".to_string());
+          result.extend(self.string_list_dict_value.iter().flat_map(|entry| {
+            // Ugly^2
+            let mut result = VecDeque::default();
+            result.push_back(format!("  \"{0}\": [", entry.key));
+            if !entry.value.is_empty() {
+              result
+                .extend(entry.value.iter().map(|v| format!("    \"{v}\",")));
+            }
+            result.push_back("  ],".to_string());
+            result
+          }));
+          result.push_back("},".to_string());
+        }
+        result
+      }
+      // TODO(agondek): Improve
       Discriminator::Tristate => {
         VecDeque::from_iter([format!("{:#?}", self.tristate_value())])
       } // Prettier?
-      Discriminator::IntegerList => self
-        .int_list_value
-        .iter()
-        .map(|v| format!("{v}"))
-        .collect::<VecDeque<_>>()
-        .clone(),
+      Discriminator::IntegerList => {
+        // Ugly
+        let mut result = VecDeque::default();
+        if !self.int_list_value.is_empty() {
+          result.push_back("[".to_string());
+          result.extend(self.int_list_value.iter().map(|v| format!("{v},")));
+          result.push_back("],".to_string());
+        }
+        result
+      }
+      // TODO(agondek): Improve
       Discriminator::Unknown => VecDeque::from_iter(["Unknown!".to_string()]),
+      // TODO(agondek): Improve
       Discriminator::LabelDictUnary => {
         VecDeque::from_iter([format!("{:#?}", self.label_dict_unary_value)])
-      } // Prettier?
+      }
+      // TODO(agondek): Improve (Deeply nested fun)
       Discriminator::SelectorList => {
         VecDeque::from_iter([format!("{:#?}", self.selector_list)])
-      } // Improve
-      Discriminator::LabelKeyedStringDict => self
-        .label_keyed_string_dict_value
-        .iter()
-        .map(|entry| format!("{}: {}", entry.key, entry.value))
-        .collect::<VecDeque<_>>(), // Prettier?
+      }
+      Discriminator::LabelKeyedStringDict => {
+        // Ugly
+        let mut result = VecDeque::default();
+        if !self.label_keyed_string_dict_value.is_empty() {
+          result.push_back("{".to_string());
+          result.extend(self.label_keyed_string_dict_value.iter().map(
+            |entry| format!("  \"{0}\": \"{1}\",", entry.key, entry.value),
+          ));
+          result.push_back("},".to_string());
+        }
+        result
+      }
+      // TODO(agondek): Improve (Deeply nested fun)
       Discriminator::DeprecatedStringDictUnary => {
         VecDeque::from_iter([format!(
           "{:#?}",
