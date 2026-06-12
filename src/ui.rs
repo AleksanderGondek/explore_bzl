@@ -33,6 +33,34 @@ trait NamingisDiffcult {
 }
 
 // TODO(agondek): refactor
+impl NamingisDiffcult for crate::bazel_proto::analysis::CqueryResult {
+  fn stringfy(&self) -> Vec<String> {
+    let mut result: Vec<String> = Vec::default();
+    for cfg in &self.configurations {
+      result.push(format!("\"id\": \"{}\"", cfg.id));
+      result.push(format!("\"mnemonic\": \"{}\"", cfg.mnemonic));
+      result.push(format!("\"platform_name\": \"{}\"", cfg.platform_name));
+      result.push(format!("\"checksum\":\"{}\"", cfg.checksum));
+      result.push(format!("\"is_tool\": \"{}\"", cfg.is_tool));
+
+      // cfg.fragments has nothing of interest
+      for fragment_option in &cfg.fragment_options {
+        result.push(format!("{} {{", fragment_option.name));
+        for option in &fragment_option.options {
+          result.push(format!(
+            "  \"{}\": \"{}\"",
+            option.name.clone().unwrap_or("???".to_string()),
+            option.value()
+          ));
+        }
+        result.push("},".to_string());
+      }
+    }
+    result
+  }
+}
+
+// TODO(agondek): refactor
 #[allow(clippy::too_many_lines)]
 impl NamingisDiffcult for crate::bazel_proto::blaze_query::Attribute {
   fn stringfy(&self) -> Vec<String> {
@@ -318,15 +346,20 @@ impl StatefulWidget for Ui {
             if !state.targets_cquery.contains_key(&selected_label) {
               return vec!["Loading...".to_string()];
             }
-
+            // TODO(agondek): Improve
             state
               .targets_cquery
               .get(&selected_label)
               .unwrap()
-              .configurations
-              .iter()
-              .map(|cfg| format!("{cfg:#?}"))
-              .collect()
+              .stringfy()
+            // state
+            //   .targets_cquery
+            //   .get(&selected_label)
+            //   .unwrap()
+            //   .configurations
+            //   .iter()
+            //   .map(|cfg| format!("{:#?}", cfg.fragments))
+            //   .collect()
           },
         );
 
