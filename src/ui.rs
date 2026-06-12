@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 use ratatui::{
   buffer::Buffer,
   layout::{Constraint, Layout, Offset, Rect},
@@ -27,76 +29,87 @@ impl<T: Clone + ToString> Spanify for Option<T> {
 }
 
 trait NamingisDiffcult {
-  fn stringfy(&self) -> String;
+  fn stringfy(&self) -> Vec<String>;
 }
 
 // TODO: Currently \n is not handled in output, should be!
 impl NamingisDiffcult for crate::bazel_proto::blaze_query::Attribute {
-  fn stringfy(&self) -> String {
-    let value = match self.r#type() {
-      Discriminator::Integer => format!("{}", self.int_value()),
+  fn stringfy(&self) -> Vec<String> {
+    let mut value: VecDeque<String> = match self.r#type() {
+      Discriminator::Integer => {
+        VecDeque::from_iter([format!("{}", self.int_value())])
+      }
       Discriminator::String
       | Discriminator::Label
       | Discriminator::Output
-      | Discriminator::Boolean => self.string_value().to_string(),
+      | Discriminator::Boolean => {
+        VecDeque::from_iter([self.string_value().to_string()])
+      }
       Discriminator::StringList
       | Discriminator::LabelList
       | Discriminator::OutputList
       | Discriminator::DistributionSet => {
-        self.string_list_value.join(",\n  ").clone()
+        VecDeque::from(self.string_list_value.clone())
       }
       Discriminator::License => self
         .license
         .as_ref()
-        .map_or(String::default(), |lic| lic.license_type.join(" "))
+        .map_or(VecDeque::default(), |lic| {
+          VecDeque::from_iter([format!("{lic:#?}")])
+        })
         .clone(),
       Discriminator::StringDict => self
         .string_dict_value
         .iter()
         .map(|entry| format!("{}: {}", entry.key, entry.value))
-        .collect::<Vec<_>>()
-        .join(",\n  ")
+        .collect::<VecDeque<_>>()
         .clone(),
-      Discriminator::FilesetEntryList => {
-        format!("{:#?}", self.fileset_list_value)
-      } // Prettier?
+      Discriminator::FilesetEntryList => self
+        .fileset_list_value
+        .iter()
+        .map(|f| format!("{f:#?}"))
+        .collect(), // Prettier?
       Discriminator::LabelListDict | Discriminator::StringListDict => self
         .string_list_dict_value
         .iter()
         .map(|entry| format!("{}: {}", entry.key, entry.value.join(",\n  ")))
-        .collect::<Vec<_>>()
-        .join(",\n  ")
+        .collect::<VecDeque<_>>()
         .clone(),
-      Discriminator::Tristate => format!("{:#?}", self.tristate_value()), // Prettier?
+      Discriminator::Tristate => {
+        VecDeque::from_iter([format!("{:#?}", self.tristate_value())])
+      } // Prettier?
       Discriminator::IntegerList => self
         .int_list_value
         .iter()
         .map(|v| format!("{v}"))
-        .collect::<Vec<_>>()
-        .join(", ")
+        .collect::<VecDeque<_>>()
         .clone(),
-      Discriminator::Unknown => "Unknown!".to_string(),
+      Discriminator::Unknown => VecDeque::from_iter(["Unknown!".to_string()]),
       Discriminator::LabelDictUnary => {
-        format!("{:#?}", self.label_dict_unary_value)
+        VecDeque::from_iter([format!("{:#?}", self.label_dict_unary_value)])
       } // Prettier?
-      Discriminator::SelectorList => format!("{:#?}", self.selector_list), // Improve
-      Discriminator::LabelKeyedStringDict => {
-        format!(
-          "{:#?}",
-          self
-            .label_keyed_string_dict_value
-            .iter()
-            .map(|entry| format!("{}: {}", entry.key, entry.value))
-            .collect::<Vec<_>>()
-            .join(",\n  ")
-        )
-      } // Prettier?
+      Discriminator::SelectorList => {
+        VecDeque::from_iter([format!("{:#?}", self.selector_list)])
+      } // Improve
+      Discriminator::LabelKeyedStringDict => self
+        .label_keyed_string_dict_value
+        .iter()
+        .map(|entry| format!("{}: {}", entry.key, entry.value))
+        .collect::<VecDeque<_>>(), // Prettier?
       Discriminator::DeprecatedStringDictUnary => {
-        format!("{:#?}", self.deprecated_string_dict_unary_value)
+        VecDeque::from_iter([format!(
+          "{:#?}",
+          self.deprecated_string_dict_unary_value
+        )])
       } // Prettier?
     };
 
-    format!("{} = {}", self.name, value)
+    let mut response = Vec::default();
+    if let Some(front) = value.pop_front() {
+      response.push(format!("{} = {}", self.name, front));
+      response.extend(value);
+    }
+    response
   }
 }
 
@@ -238,7 +251,7 @@ impl StatefulWidget for Ui {
               .unwrap()
               .attribute
               .iter()
-              .map(NamingisDiffcult::stringfy)
+              .flat_map(NamingisDiffcult::stringfy)
               .collect()
           },
         );
