@@ -1,10 +1,70 @@
-load("@rules_rust//rust:defs.bzl", "rust_binary")
 load("@crates//:defs.bzl", "all_crate_deps")
+load("@protobuf//bazel:proto_library.bzl", "proto_library")
+load("@rules_rust//rust:defs.bzl", "rust_binary", "rust_library", "rust_library_group")
+load("@rules_rust_prost//:defs.bzl", "rust_prost_library", "rust_prost_toolchain")
 
 package(default_visibility = ["//visibility:public"])
 
+proto_library(
+    name = "bazel_proto",
+    srcs = glob(["src/bazel_proto/**/*.proto"]),
+    strip_import_prefix = "src/bazel_proto",
+)
+
+rust_prost_library(
+    name = "bazel_proto_rs",
+    proto = ":bazel_proto",
+)
+
+rust_library(
+    name = "explore_bzl_lib",
+    srcs = glob(
+        [
+            "src/**/*.rs",
+        ],
+        exclude = ["src/main.rs"],
+    ),
+    crate_features = ["bazel"],
+    crate_name = "explore_bzl",
+    version = "0.0.1",
+    deps = all_crate_deps(
+        normal = True,
+    ) + [":bazel_proto_rs"],
+)
+
 rust_binary(
     name = "explore_bzl",
-    srcs = glob(["src/**/*"]),
-    deps = all_crate_deps(normal = True),
+    srcs = ["src/main.rs"],
+    deps = all_crate_deps(
+        normal = True,
+    ) + [":explore_bzl_lib"],
+)
+
+# We need an explicit, custom toolchain to ensure parity
+# between prost runtime and prost used in crate
+# (otherwise the compilation will fail - rightfully so)
+rust_library_group(
+    name = "prost_runtime",
+    deps = ["@crates//:prost"],
+)
+
+rust_library_group(
+    name = "prost_types",
+    deps = ["@crates//:prost-types"],
+)
+
+rust_prost_toolchain(
+    name = "prost_toolchain_impl",
+    prost_plugin = "@rules_rust_prost//private/3rdparty/crates:protoc-gen-prost__protoc-gen-prost",
+    prost_runtime = ":prost_runtime",
+    prost_types = ":prost_types",
+    # We don't need tonic
+    tonic_plugin_flag = "",
+)
+
+toolchain(
+    name = "prost_toolchain",
+    toolchain = ":prost_toolchain_impl",
+    toolchain_type = "@rules_rust_prost//:toolchain_type",
+    visibility = ["//visibility:public"],
 )

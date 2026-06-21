@@ -4,10 +4,11 @@ module(
 )
 
 bazel_dep(name = "rules_rust", version = "0.70.0")
+
 rust = use_extension("@rules_rust//rust:extensions.bzl", "rust")
 rust.toolchain(
     edition = "2024",
-    versions = [ "1.85.0" ],
+    versions = ["1.95.0"],
 )
 
 crate = use_extension(
@@ -19,5 +20,10 @@ crate.from_cargo(
     cargo_lockfile = "//:Cargo.lock",
     manifests = ["//:Cargo.toml"],
 )
-
 use_repo(crate, "crates")
+
+bazel_dep(name = "rules_rust_prost", version = "0.70.0")
+
+register_toolchains("//:prost_toolchain")
+
+bazel_dep(name = "protobuf", version = "35.1")

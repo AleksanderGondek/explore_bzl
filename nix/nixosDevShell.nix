@@ -4,6 +4,7 @@
   writeScript,
   alejandra,
   bazelisk,
+  bazel-buildtools,
   cacert,
   cocogitto,
   gcc,

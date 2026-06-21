@@ -8,6 +8,7 @@ This CLI tool helps to onboard developers to Bazel through exploration of code r
 ## Table of contents
 
 1. [Overview](#overview)
+2. [How to build](#how-to-build)
 2. [Roadmap](#roadmap)
 
 ## Overview
@@ -17,13 +18,24 @@ places the power of exploration into the developers hands, thus enabling them to
 
 This greatly reduces the cognitive overhead required for people to learn Bazel and start being productive. 
 
+## How to build
+
+> [!NOTE]
+> The pre-built binary will be available alongside releases made in future.
+
+```shell
+$ git clone git@github.com:AleksanderGondek/explore_bzl.git
+$ bazel build //:explore_bzl
+$ $(bazel info bazel-bin)/explore_bzl
+```
+
 ## Roadmap
 No sleep til Bazelcon!
  
 * [ ] Finish Bazelification (ETA: 2026-06-30)
-  * [ ] Make prost! (from proto) generation work
   * [ ] Integrate clippy
   * [ ] Integrate docs generation
+  * [ ] Rearrange structure to improve composibility
 * [ ] Release process & its automation (ETA: 2026-07-12)
   * [ ] Automated releases, based on conventional commits
   * [ ] Automated publication to github 'releases'
