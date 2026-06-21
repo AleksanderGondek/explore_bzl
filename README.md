@@ -8,7 +8,7 @@ This CLI tool helps to onboard developers to Bazel through exploration of code r
 ## Table of contents
 
 1. [Overview](#overview)
-2. [TODOs](#todos)
+2. [Roadmap](#roadmap)
 
 ## Overview
 
@@ -17,9 +17,20 @@ places the power of exploration into the developers hands, thus enabling them to
 
 This greatly reduces the cognitive overhead required for people to learn Bazel and start being productive. 
 
-## TODOs
-* [ ] Finish Bazelification
-* [ ] Overivew of actions
-* [ ] Build command
-* [ ] Default params for queries
-* [ ] Actual release process
+## Roadmap
+No sleep til Bazelcon!
+ 
+* [ ] Finish Bazelification (ETA: 2026-06-30)
+  * [ ] Make prost! (from proto) generation work
+  * [ ] Integrate clippy
+  * [ ] Integrate docs generation
+* [ ] Release process & its automation (ETA: 2026-07-12)
+  * [ ] Automated releases, based on conventional commits
+  * [ ] Automated publication to github 'releases'
+  * [ ] Automated publication to BCR
+* [ ] Features
+  * [ ] Visualization of aquery results (ETA: 2026-06-30)
+  * [ ] Build command capability (ETA: 2026-07-05)
+  * [ ] Scrolling of panes (ETA: 2026-07-26)
+  * [ ] Panes selection (ETA: 2026-07-26)
+
